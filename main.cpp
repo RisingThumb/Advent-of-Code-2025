@@ -17,6 +17,8 @@
 #include <string>
 #include <assert.h>
 #include <format>
+#include <regex>
+#include <stdint.h>
 
 #define MAX_FILEPATH_RECORDED   4096
 #define MAX_FILEPATH_SIZE       2048
@@ -39,6 +41,8 @@ string outputLabelText = "";
 void UpdateDrawFrame(void);
 int solution1dot1(string path);
 int solution1dot2(string path);
+uint64_t solution2dot1(string path);
+uint64_t solution2dot2(string path);
 
 void UpdateDrawFrame(void) {
     // Update
@@ -77,18 +81,29 @@ void UpdateDrawFrame(void) {
 
             DrawText("Drop new files...", 100,25+ 40*filePathCounter, 20, DARKGRAY);
         }
-        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
         if(GuiButton((Rectangle){210, 0, 200, 20}, "#01#Calculate for file")) {
+            printf("%d\n",active);
             if (filePathCounter > 0) {
                 if (active == 0) {
-                    outputLabelText = format("Solution: {}", solution1dot1(filePaths[0]));
+                    outputLabelText = format("{}", solution1dot1(filePaths[0]));
                 }
                 if (active == 1) {
-                    outputLabelText = format("Solution: {}", solution1dot2(filePaths[0]));
+                    outputLabelText = format("{}", solution1dot2(filePaths[0]));
+                }
+                if (active == 2) {
+                    cout << "Hello?" << endl;
+                    outputLabelText = format("{}", solution2dot1(filePaths[0]));
+                }
+                if (active == 3) {
+                    outputLabelText = format("{}", solution2dot2(filePaths[0]));
                 }
             }
         };
-        DrawText(outputLabelText.c_str(), 100,85, 20, DARKGRAY);
+        DrawText(outputLabelText.c_str(), screenWidth/2,screenHeight/2 -10, 20, DARKGRAY);
+        if (GuiButton((Rectangle){ screenWidth-100, screenHeight-20, 100, 20 }, "#16#COPY")) {
+            SetClipboardText(outputLabelText.c_str());
+        }
+        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
     EndDrawing();
 
 
@@ -195,12 +210,87 @@ void testsSolution1() {
     );
 }
 
+uint64_t solution2dot1(string path) {
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    uint64_t hitCount = 0;
+    string line;
+    while (getline(file, line, ',')) {
+        auto pos = line.find('-');
+        string firstId = line.substr(0, pos);
+        string secondId = line.substr(pos+1, line.length());
+        uint64_t firstIdInt = stoull(firstId);
+        uint64_t secondIdInt = stoull(secondId);
+        for(uint64_t i = firstIdInt; i <= secondIdInt; i++) {
+            string idToCheck = to_string(i);
+            if (idToCheck.length() % 2 != 0) continue;
+            string halfId = idToCheck.substr(0, idToCheck.length()/2);
+            string fullMatch=halfId.append(halfId);
+            regex r(fullMatch);
+            smatch match;
+            bool matched = regex_search(idToCheck, match, r);
+            if (matched){
+                hitCount+=i;
+            }
+        }
+    }
+    return hitCount;
+}
+
+uint64_t solution2dot2(string path) {
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    uint64_t hitCount = 0;
+    string line;
+    while (getline(file, line, ',')) {
+        auto pos = line.find('-');
+        string firstId = line.substr(0, pos);
+        string secondId = line.substr(pos+1, line.length());
+        uint64_t firstIdInt = stoull(firstId);
+        uint64_t secondIdInt = stoull(secondId);
+        for(uint64_t i = firstIdInt; i <= secondIdInt; i++) {
+            string idToCheck = to_string(i);
+            bool matchFinder = false;
+            for (int j = 1; j <= idToCheck.length()/2; j++) {
+                // If it doesn't fit into it nicely. So a repeating pattern of 1 digit will
+                // A repeating pattern of 2 digits doesn't fit into an odd number
+                // A repeating pattern of 3 digits fits nicely into anything like 6...9 etc
+                if (idToCheck.length()%j != 0) continue;
+                int matchExpects = idToCheck.length()/j;
+                string portionToUse = idToCheck.substr(0, j);
+                string formattedPortion = format("({}){{{},}}", portionToUse, matchExpects);
+                regex r(formattedPortion);
+                smatch match;
+                matchFinder = regex_search(idToCheck, match, r);
+                if (matchFinder) break;
+
+            }
+            if (matchFinder){
+                hitCount+=i;
+            }
+        }
+    }
+    return hitCount;
+}
+
+
 //------------------------------------------------------------------------------------
 // Program main entry point
 //------------------------------------------------------------------------------------
 int main(void)
 {
     srand(clock());
+
+    // uint64_t b3 = solution2dot2("part2Input.txt");
+    // string output3 = to_string(b3);
+    // cout << output3 << endl;
+
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "Advent of Code 2025");
@@ -232,4 +322,3 @@ int main(void)
 
     return 0;
 }
-
