@@ -26,6 +26,7 @@
 
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 using namespace std;
 
@@ -43,6 +44,8 @@ int solution1dot1(string path);
 int solution1dot2(string path);
 uint64_t solution2dot1(string path);
 uint64_t solution2dot2(string path);
+int solution3dot1(string path);
+uint64_t solution3dot2(string path);
 
 void UpdateDrawFrame(void) {
     // Update
@@ -82,7 +85,6 @@ void UpdateDrawFrame(void) {
             DrawText("Drop new files...", 100,25+ 40*filePathCounter, 20, DARKGRAY);
         }
         if(GuiButton((Rectangle){210, 0, 200, 20}, "#01#Calculate for file")) {
-            printf("%d\n",active);
             if (filePathCounter > 0) {
                 if (active == 0) {
                     outputLabelText = format("{}", solution1dot1(filePaths[0]));
@@ -97,13 +99,19 @@ void UpdateDrawFrame(void) {
                 if (active == 3) {
                     outputLabelText = format("{}", solution2dot2(filePaths[0]));
                 }
+                if (active == 4) {
+                    outputLabelText = format("{}", solution3dot1(filePaths[0]));
+                }
+                if (active == 5) {
+                    outputLabelText = format("{}", solution3dot2(filePaths[0]));
+                }
             }
         };
         DrawText(outputLabelText.c_str(), screenWidth/2,screenHeight/2 -10, 20, DARKGRAY);
         if (GuiButton((Rectangle){ screenWidth-100, screenHeight-20, 100, 20 }, "#16#COPY")) {
             SetClipboardText(outputLabelText.c_str());
         }
-        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
+        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2;Puzzle 3.1;Puzzle 3.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
     EndDrawing();
 
 
@@ -279,6 +287,54 @@ uint64_t solution2dot2(string path) {
     return hitCount;
 }
 
+uint64_t get_joltage(string line, int batterycount = 12) {
+    int removals_left = line.length() - batterycount;
+    vector<char> stack = {};
+
+    for (int i =0; i < line.length(); i++) {
+        char digit = line.at(i);
+        while (removals_left > 0 && stack.size() > 0 && stack.back() < digit) {
+            stack.pop_back();
+            removals_left--;
+        }
+        stack.push_back(digit);
+    }
+    string a;
+    for (int i = 0; i<batterycount; i++) {
+        a.push_back(stack.at(i));
+    }
+    return stoull(a);
+}
+
+int solution3dot1(string path) {
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    int totaljoltage = 0;
+    while (getline(file, line)) {
+        totaljoltage += get_joltage(line, 2);
+    }
+    return totaljoltage;
+}
+
+
+uint64_t solution3dot2(string path) {
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    uint64_t totaljoltage = 0;
+    while (getline(file, line)) {
+        totaljoltage += get_joltage(line);
+    }
+    return totaljoltage;
+}
+
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -286,6 +342,12 @@ uint64_t solution2dot2(string path) {
 int main(void)
 {
     srand(clock());
+    // int a = solution3dot1("part3Input.txt");
+    // printf("%d\n", a);
+
+    // uint64_t b = solution3dot2("part3Input.txt");
+    // cout << to_string(b) << endl;
+
 
     // uint64_t b3 = solution2dot2("part2Input.txt");
     // string output3 = to_string(b3);
