@@ -46,6 +46,14 @@ uint64_t solution2dot1(string path);
 uint64_t solution2dot2(string path);
 int solution3dot1(string path);
 uint64_t solution3dot2(string path);
+int solution4dot1(string path);
+int solution4dot2(string path);
+int getSetHitcountForPaperRollsIt(vector<string>& grid, int gridWidth);
+
+struct COORDINATE {
+    int x;
+    int y;
+} coordinate;
 
 void UpdateDrawFrame(void) {
     // Update
@@ -105,13 +113,19 @@ void UpdateDrawFrame(void) {
                 if (active == 5) {
                     outputLabelText = format("{}", solution3dot2(filePaths[0]));
                 }
+                if (active == 6) {
+                    outputLabelText = format("{}", solution4dot1(filePaths[0]));
+                }
+                if (active == 7) {
+                    outputLabelText = format("{}", solution4dot2(filePaths[0]));
+                }
             }
         };
         DrawText(outputLabelText.c_str(), screenWidth/2,screenHeight/2 -10, 20, DARKGRAY);
         if (GuiButton((Rectangle){ screenWidth-100, screenHeight-20, 100, 20 }, "#16#COPY")) {
             SetClipboardText(outputLabelText.c_str());
         }
-        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2;Puzzle 3.1;Puzzle 3.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
+        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2;Puzzle 3.1;Puzzle 3.2;Puzzle 4.1;Puzzle 4.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
     EndDrawing();
 
 
@@ -335,6 +349,85 @@ uint64_t solution3dot2(string path) {
     return totaljoltage;
 }
 
+bool am_i_paper_roll(int x, int y, vector<string>& grid) {
+    return grid.at(y).at(x) == '@';
+}
+
+int solution4dot1(string path) {
+    // Parse into a 2D vector(Vector of strings)
+    vector<string> grid;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    int gridWidth = 0;
+    while (getline(file, line)) {
+        gridWidth = line.length();
+        grid.push_back(line);
+    }
+    int hitCount = getSetHitcountForPaperRollsIt(grid, gridWidth);
+    return hitCount;
+}
+
+int solution4dot2(string path) {
+    // Parse into a 2D vector(Vector of strings)
+    vector<string> grid;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    int gridWidth = 0;
+    while (getline(file, line)) {
+        gridWidth = line.length();
+        grid.push_back(line);
+    }
+    int hitCount = 0;
+    int hitCountThisIter = 1;
+    while (hitCountThisIter > 0) {
+        hitCountThisIter = getSetHitcountForPaperRollsIt(grid, gridWidth);
+        hitCount += hitCountThisIter;
+    }
+    return hitCount;
+}
+
+int getSetHitcountForPaperRollsIt(vector<string>& grid, int gridWidth) {
+    vector<COORDINATE> coordsHit;
+    int hitCount = 0;
+    for (int x = 0; x< gridWidth; x++) {
+        for (int y = 0; y<grid.size(); y++) {
+            if (!am_i_paper_roll(x, y, grid)) continue; // Don't count blank tiles
+            int adjacencyCount = 0;
+            for (int i = -1; i< 2; i++) {
+                for (int j = -1; j<2; j++) {
+                    if (x+i < 0 || x+i >= gridWidth) {
+                        continue;
+                    }
+                    if (y+j < 0 || y+j >= grid.size()) {
+                        continue;
+                    }
+                    if (i == 0 && j == 0) continue;
+                    if (am_i_paper_roll(x+i, y+j, grid)) {
+                        adjacencyCount += 1;
+                    }
+                }
+            }
+            if (adjacencyCount < 4) {
+                COORDINATE coord = {x, y};
+                coordsHit.push_back(coord);
+                hitCount ++;
+            }
+        }
+    }
+    for (auto coord: coordsHit) {
+        grid.at(coord.y)[coord.x] = '.';
+    }
+    return hitCount;
+}
+
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -342,8 +435,6 @@ uint64_t solution3dot2(string path) {
 int main(void)
 {
     srand(clock());
-    // int a = solution3dot1("part3Input.txt");
-    // printf("%d\n", a);
 
     // uint64_t b = solution3dot2("part3Input.txt");
     // cout << to_string(b) << endl;
