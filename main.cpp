@@ -49,11 +49,22 @@ uint64_t solution3dot2(string path);
 int solution4dot1(string path);
 int solution4dot2(string path);
 int getSetHitcountForPaperRollsIt(vector<string>& grid, int gridWidth);
+uint64_t solution5dot1(string path);
+uint64_t solution5dot2(string path);
+uint64_t solution6dot1(string path);
+uint64_t solution6dot2(string path);
+uint64_t solution7dot1(string path);
+int64_t solution7dot2(string path);
 
 struct COORDINATE {
     int x;
     int y;
 } coordinate;
+
+struct RANGE {
+    uint64_t lowerBound;
+    uint64_t upperBound;
+} range;
 
 void UpdateDrawFrame(void) {
     // Update
@@ -101,7 +112,6 @@ void UpdateDrawFrame(void) {
                     outputLabelText = format("{}", solution1dot2(filePaths[0]));
                 }
                 if (active == 2) {
-                    cout << "Hello?" << endl;
                     outputLabelText = format("{}", solution2dot1(filePaths[0]));
                 }
                 if (active == 3) {
@@ -119,13 +129,32 @@ void UpdateDrawFrame(void) {
                 if (active == 7) {
                     outputLabelText = format("{}", solution4dot2(filePaths[0]));
                 }
+                if (active == 8) {
+                    outputLabelText = format("{}", solution5dot1(filePaths[0]));
+                }
+                if (active == 9) {
+                    outputLabelText = format("{}", solution5dot2(filePaths[0]));
+                }
+                if (active == 10) {
+                    outputLabelText = format("{}", solution6dot1(filePaths[0]));
+                }
+                if (active == 11) {
+                    outputLabelText = format("{}", solution6dot2(filePaths[0]));
+                }
+                if (active == 12) {
+                    outputLabelText = format("{}", solution7dot1(filePaths[0]));
+                }
+                if (active == 13) {
+                    outputLabelText = format("{}", solution7dot2(filePaths[0]));
+                }
+                
             }
         };
         DrawText(outputLabelText.c_str(), screenWidth/2,screenHeight/2 -10, 20, DARKGRAY);
         if (GuiButton((Rectangle){ screenWidth-100, screenHeight-20, 100, 20 }, "#16#COPY")) {
             SetClipboardText(outputLabelText.c_str());
         }
-        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2;Puzzle 3.1;Puzzle 3.2;Puzzle 4.1;Puzzle 4.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
+        if(GuiDropdownBox((Rectangle){0, 0, 200, 20}, "Puzzle 1.1;Puzzle 1.2;Puzzle 2.1;Puzzle 2.2;Puzzle 3.1;Puzzle 3.2;Puzzle 4.1;Puzzle 4.2;Puzzle 5.1;Puzzle 5.2;Puzzle 6.1;Puzzle 6.2;Puzzle 7.1;Puzzle 7.2", &active, dropdownOpen)) dropdownOpen = !dropdownOpen;
     EndDrawing();
 
 
@@ -154,7 +183,6 @@ int solution1dot1(string path) {
         if (dialPos == 0) {
             hits0 += 1;
         }
-        //cout << line << endl;
     }
     file.close();
     return hits0;
@@ -428,6 +456,313 @@ int getSetHitcountForPaperRollsIt(vector<string>& grid, int gridWidth) {
     return hitCount;
 }
 
+bool range_comp (RANGE a, RANGE b) {
+    return a.upperBound < b.upperBound;
+}
+
+u_int64_t solution5dot1(string path) {
+    // Parse into a 2D vector(Vector of strings)
+    vector<RANGE> ranges;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    while (getline(file, line)) {
+        // Newline splits the ranges and food IDs
+        if (line.length() <= 1) break;
+        auto pos = line.find('-');
+        string lowerRange = line.substr(0, pos);
+        string upperRange = line.substr(pos+1, line.length());
+        uint64_t upperRangeInt = stoull(upperRange);
+        uint64_t lowerRangeInt = stoull(lowerRange);
+
+        ranges.push_back((RANGE){lowerRangeInt, upperRangeInt});
+    }
+    sort(ranges.begin(), ranges.end(), range_comp);
+    // Now we need to merge overlapping ranges. Start from the back and work forwards?
+    for (int i = ranges.size()-1; i >= 0; i--) {
+        RANGE checkRange = ranges.at(i);
+        int upperCheck = i+1;
+        if (i+1 < ranges.size()) {
+            // Check if the upper thing overlaps.
+            
+            RANGE rangeCheck = ranges.at(i+1);
+            bool overlaps = ((checkRange.lowerBound <= rangeCheck.upperBound) && (rangeCheck.lowerBound <= checkRange.upperBound));
+            //bool overlaps = false;
+            if (overlaps) {
+                checkRange.lowerBound = min(checkRange.lowerBound, rangeCheck.lowerBound);
+                checkRange.upperBound = max(checkRange.upperBound, rangeCheck.upperBound);
+                ranges.erase(ranges.begin()+i+1);
+                // We got a copy so we need to replace it
+                ranges.erase(ranges.begin()+i);
+                ranges.insert(ranges.begin()+i, checkRange);
+            }
+        }
+    }
+    // We now have a sorted list of maximally overlapped ranges 
+    // We now go through and check every ID to see if it's in any range
+    u_int64_t hitCount = 0;
+    while (getline(file, line)) {
+        uint64_t id = stoull(line);
+        bool spoiled = true;
+        for (auto i: ranges) {
+            if (id >= i.lowerBound && id <= i.upperBound) {
+                spoiled = false;
+                break;
+            }
+        }
+        if (!spoiled) hitCount++;
+    }
+    return hitCount;
+}
+
+u_int64_t solution5dot2(string path) {
+    // Parse into a 2D vector(Vector of strings)
+    vector<RANGE> ranges;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    while (getline(file, line)) {
+        // Newline splits the ranges and food IDs
+        if (line.length() <= 1) break;
+        auto pos = line.find('-');
+        string lowerRange = line.substr(0, pos);
+        string upperRange = line.substr(pos+1, line.length());
+        uint64_t upperRangeInt = stoull(upperRange);
+        uint64_t lowerRangeInt = stoull(lowerRange);
+
+        ranges.push_back((RANGE){lowerRangeInt, upperRangeInt});
+    }
+    sort(ranges.begin(), ranges.end(), range_comp);
+    // Now we need to merge overlapping ranges. Start from the back and work forwards?
+    for (int i = ranges.size()-1; i >= 0; i--) {
+        RANGE checkRange = ranges.at(i);
+        int upperCheck = i+1;
+        if (i+1 < ranges.size()) {
+            // Check if the upper thing overlaps.
+            
+            RANGE rangeCheck = ranges.at(i+1);
+            bool overlaps = ((checkRange.lowerBound <= rangeCheck.upperBound) && (rangeCheck.lowerBound <= checkRange.upperBound));
+            //bool overlaps = false;
+            if (overlaps) {
+                checkRange.lowerBound = min(checkRange.lowerBound, rangeCheck.lowerBound);
+                checkRange.upperBound = max(checkRange.upperBound, rangeCheck.upperBound);
+                ranges.erase(ranges.begin()+i+1);
+                // We got a copy so we need to replace it
+                ranges.erase(ranges.begin()+i);
+                ranges.insert(ranges.begin()+i, checkRange);
+            }
+        }
+    }
+    // We now have a sorted list of maximally overlapped ranges 
+    // We now go through and check every ID to see if it's in any range
+    u_int64_t hitCount = 0;
+    for (auto r: ranges) {
+        hitCount += r.upperBound - r.lowerBound +1;
+    }
+    return hitCount;
+}
+
+u_int64_t solution6dot1(string path) {
+    vector<vector<u_int64_t>> columns;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    string line;
+    while (getline(file, line)) {
+        if (line.at(0) == '*' || line.at(0) == '+') break;
+        string tmp;
+        stringstream ss(line);
+        int i = 0;
+        bool needToCreateVectors = (columns.size() == 0);
+        while (getline(ss, tmp, ' ')) {
+            if (tmp.length() == 0) continue;
+            if (needToCreateVectors) {
+                vector<u_int64_t> column;
+                columns.push_back(column);
+            }
+            u_int64_t val = stoull(tmp);
+            columns.at(i).push_back(val);
+            i+=1;
+            
+        }
+    }
+    string tmp;
+    stringstream ss(line);
+    int i = 0;
+    u_int64_t sumOfSums = 0;
+    while (getline(ss, tmp, ' ')) {
+        u_int64_t sum = 0;
+        if (tmp.length() == 0) continue;
+        bool isMult = false;
+        if (tmp.at(0) == '*') isMult = true;
+        if (isMult) sum = 1;
+        for (auto j: columns.at(i)) {
+            if (isMult) sum *= j;
+            else sum+=j;
+        }
+        sumOfSums += sum;
+        i +=1;
+    }
+    // Do multiplication and addition here
+    return sumOfSums;
+}
+
+u_int64_t solution6dot2(string path) {
+    vector<string> lines;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    // Cannot rely on the column width. Need to determine it PER column?
+    string line;
+    while (getline(file, line)) {
+        if (line.at(0) == '*' || line.at(0) == '+') break;
+        lines.push_back(line);
+    }
+    stringstream symbollinestream(line);
+    u_int64_t sumOfSums = 0;
+    vector<int> sizes;
+    int width = 0;
+    char multiplier = line.at(0);
+    for (int i = 1; i< line.length(); i++) {
+        
+        if (line.at(i) == ' ') width +=1;
+        if (line.at(i) == '*' || line.at(i) == '+') {
+            sizes.push_back(width);
+            width = 0;
+        }
+        if (i+1 >= line.length()) sizes.push_back(width+1);
+    }
+    int runningSize = 0;
+    for (int i = 0; i<sizes.size(); i++) {
+        int columnWidth = sizes.at(i);
+        if (columnWidth == 0) {
+            break;
+        }
+        bool mult = (line.at(i+runningSize) == '*');
+        assert(line.at(i+runningSize) != ' ');
+        vector<u_int64_t> numbers;
+        for (int j = 0; j<columnWidth; j++) {
+            string strNum = "";
+            for (int k = 0; k < lines.size(); k++) {
+                strNum += lines.at(k).at(j+runningSize+i);
+            }
+            numbers.push_back(stoull(strNum));
+        }
+        u_int64_t sum = 0;
+        if (mult) {
+            sum = 1;
+            for (auto num: numbers) sum*=num;
+        }
+        else {
+            for (auto num: numbers) sum+=num;
+        }
+        sumOfSums += sum;
+
+        // At end
+        runningSize += columnWidth;
+    }
+
+    // Do multiplication and addition here
+    return sumOfSums;
+}
+
+u_int64_t solution7dot1(string path) {
+    vector<string> lines;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    // Cannot rely on the column width. Need to determine it PER column?
+    string line;
+    while (getline(file, line)) {
+        lines.push_back(line);
+    }
+    u_int64_t splitCount = 0;
+    for (int i = 0; i < lines.size()-1; i++ ){
+        string lineToWorkOn = lines[i];
+        string lineBelowToMutate = lines[i+1];
+        for(int x = 0; x < lineToWorkOn.length(); x++) {
+            if (lineToWorkOn[x] == '.') continue;
+            if (lineToWorkOn[x] == '^') continue;
+            if (lineToWorkOn[x] = 'S' or lineToWorkOn[x] =='|') {
+                if (lineBelowToMutate[x] == '.') {
+                    lineBelowToMutate[x] = '|';
+                }
+                if (lineBelowToMutate[x] == '^') {
+                    splitCount += 1;
+                    if (x-1 >= 0) {
+                        lineBelowToMutate[x-1] = '|';
+                    }
+                    if (x+1 < lineToWorkOn.length()) {
+                        lineBelowToMutate[x+1] = '|';
+                    }
+                }
+            }
+        }
+        lines[i+1] = lineBelowToMutate;
+    }
+    return splitCount;
+}
+
+int64_t solution7dot2(string path) {
+    vector<string> lines;
+    ifstream file(path);
+    if (!file.is_open()) {
+        cerr << "Failed to open file: " << path << endl;
+        return 1;
+    }
+    // Cannot rely on the column width. Need to determine it PER column?
+    string line;
+    while (getline(file, line)) {
+        lines.push_back(line);
+    }
+    // Convert into an int form. -1 is splitters
+    vector<vector<int64_t>> intLines;
+    for (auto line: lines) {
+        vector<int64_t> intLine;
+        for (int i =0; i < line.length(); i++) {
+            if (line[i] == '.') intLine.push_back(0);
+            if (line[i] == '^') intLine.push_back(-1);
+            if (line[i] == 'S') intLine.push_back(1);
+        }
+        intLines.push_back(intLine);
+    }
+    for (int i = 0; i < intLines.size()-1; i++ ){
+        vector<int64_t> intLine = intLines[i];
+        vector<int64_t> intLineBelow = intLines[i+1];
+        for (int x = 0; x< intLine.size(); x++) {
+            if (intLine[x] <= 0) continue;
+            if (intLine[x] > 0) {
+                if (intLineBelow[x] == -1) {
+                    intLineBelow[x-1] += intLine[x];
+                    intLineBelow[x+1] += intLine[x];
+                }
+                else {
+                    intLineBelow[x] += intLine[x];
+                }
+            }
+        }
+        intLines[i+1] = intLineBelow;
+    }
+    
+    int64_t count = 0;
+    for (auto num : intLines[intLines.size()-1]) {
+        count += num;
+    }
+    return count;
+}
+
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -436,13 +771,8 @@ int main(void)
 {
     srand(clock());
 
-    // uint64_t b = solution3dot2("part3Input.txt");
-    // cout << to_string(b) << endl;
-
-
-    // uint64_t b3 = solution2dot2("part2Input.txt");
-    // string output3 = to_string(b3);
-    // cout << output3 << endl;
+    // int64_t c = solution7dot2("part7Input.txt");
+    // cout << to_string(c) << endl;
 
     // Initialization
     //--------------------------------------------------------------------------------------
